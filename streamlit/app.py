@@ -218,97 +218,82 @@ with col2:
 
 
 # =========================================================
-# =============== ④ 过去30天迁徙趋势 + 未来预测 ===============
+# =============== ④ 未来热点城市预测 + 迁徙方向分析 ===============
 # =========================================================
 
 import numpy as np
-from sklearn.linear_model import LinearRegression  # 需要 pip install scikit-learn
 
 st.write("---")
-st.subheader("④ 迁徙趋势预测（过去30天 → 未来30天）")
+st.subheader("④ 未来 7 天可能出现的城市 + 迁徙方向分析")
 
-# 只有当 heatmap 数据存在才执行
+# 必须已有热力图数据
 if (
     "heatmap_df" in st.session_state
     and isinstance(st.session_state["heatmap_df"], pd.DataFrame)
     and not st.session_state["heatmap_df"].empty
 ):
-    df_pred = st.session_state["heatmap_df"].copy()
 
-    # ---- 时间处理 ----
+    df_pred = st.session_state["heatmap_df"].copy()
     df_pred["obsDt"] = pd.to_datetime(df_pred["obsDt"], errors="coerce")
-    df_pred = df_pred.dropna(subset=["obsDt", "lat", "lng"])
+    df_pred = df_pred.dropna(subset=["obsDt", "lat", "lng", "locName"])
     df_pred = df_pred.sort_values("obsDt")
 
-    if len(df_pred) < 5:
-        st.warning("观测点太少，无法进行预测")
+    # ======================
+    # ① 未来 7 天热点城市预测
+    # ======================
+    st.markdown("### 🌆 未来 7 天：最可能观测到该鸟的城市（基于最近 30 天）")
+
+    if df_pred.empty:
+        st.warning("数据不足，无法预测未来城市")
     else:
-        # 把日期转换为整数
-        df_pred["ts"] = df_pred["obsDt"].astype(np.int64) // 10**9
-
-        X = df_pred[["ts"]].values
-        y_lat = df_pred["lat"].values
-        y_lng = df_pred["lng"].values
-
-        # ---- 建模：线性预测 ----
-        model_lat = LinearRegression().fit(X, y_lat)
-        model_lng = LinearRegression().fit(X, y_lng)
-
-        # ---- 生成未来30天时间点 ---
-        last_ts = df_pred["ts"].iloc[-1]
-        future_ts = last_ts + np.arange(1, 31) * 24 * 3600  # 30 天
-        
-        future_lat = model_lat.predict(future_ts.reshape(-1, 1))
-        future_lng = model_lng.predict(future_ts.reshape(-1, 1))
-
-        # ---- 合并成预测 DataFrame ----
-        future_df = pd.DataFrame({
-            "lat": future_lat,
-            "lng": future_lng,
-            "date": pd.to_datetime(future_ts, unit="s")
-        })
-
-        st.success("已生成未来 30 天预测迁徙轨迹（虚线）")
-
-        # ---- 在地图上绘制：真实轨迹 + 预测轨迹 ----
-        m_pred = folium.Map(
-            location=[df_pred["lat"].mean(), df_pred["lng"].mean()],
-            zoom_start=4,
-            tiles="cartodb positron",
+        # 统计 locName 出现次数（频率越高越可能再次观测到）
+        top_cities = (
+            df_pred["locName"]
+            .value_counts()
+            .reset_index()
+            .rename(columns={"index": "city", "locName": "count"})
         )
 
-        # 真实过去30天轨迹（实线）
-        folium.PolyLine(
-            locations=df_pred[["lat", "lng"]].values.tolist(),
-            color="blue",
-            weight=3,
-            opacity=0.7,
-            tooltip="过去30天",
-        ).add_to(m_pred)
+        top_cities["probability"] = top_cities["count"] / top_cities["count"].sum()
 
-        # 未来30天预测轨迹（虚线）
-        folium.PolyLine(
-            locations=future_df[["lat", "lng"]].values.tolist(),
-            color="red",
-            weight=2,
-            dash_array="5,10",
-            tooltip="未来30天预测",
-        ).add_to(m_pred)
+        st.write("📍 **未来最可能出现的前 5 个城市**（按过去 30 天频率预测）")
+        st.dataframe(top_cities.head(5))
 
-        # 两端标记
-        folium.Marker(
-            location=df_pred[["lat", "lng"]].values.tolist()[-1],
-            icon=folium.Icon(color="blue", icon="info-sign"),
-            tooltip="最近观测点（预测起点）"
-        ).add_to(m_pred)
+        # 给用户解释
+        st.info(
+            "⚠️ 说明：未来 7 天预测基于过去 30 天谁出现得最频繁；"
+            "实际迁徙行为可能受天气、季节和个体差异影响。"
+        )
 
-        folium.Marker(
-            location=future_df[["lat", "lng"]].values.tolist()[-1],
-            icon=folium.Icon(color="red", icon="star"),
-            tooltip="未来30天预测终点"
-        ).add_to(m_pred)
+    # ======================
+    # ② 迁徙方向分析（北/南/不动）
+    # ======================
+    st.markdown("### 🧭 最近 30 天迁徙方向判断")
 
-        st_folium(m_pred, width=800, height=550)
+    if len(df_pred) < 3:
+        st.warning("观测点太少，无法分析方向")
+    else:
+        # 按时间计算纬度变化速度
+        df_pred = df_pred.sort_values("obsDt")
+        df_pred["lat_shift"] = df_pred["lat"].diff()
+        df_pred["day_shift"] = df_pred["obsDt"].diff().dt.total_seconds() / (3600 * 24)
+
+        df_pred = df_pred.dropna(subset=["lat_shift", "day_shift"])
+
+        # 平均每天纬度变化
+        df_pred["lat_per_day"] = df_pred["lat_shift"] / df_pred["day_shift"]
+        mean_lat_change = df_pred["lat_per_day"].mean()
+
+        # 判断方向
+        if mean_lat_change > 0.1:
+            direction = "⬆️ **从南向北迁徙（明显北移）**"
+        elif mean_lat_change < -0.1:
+            direction = "⬇️ **从北向南迁徙（明显南移）**"
+        else:
+            direction = "➡️ **无明显方向，基本保持在同一纬度活动**"
+
+        st.success(direction)
+        st.write(f"（平均每天纬度变化：{mean_lat_change:.4f}°）")
 
 else:
-    st.info("👉 请先在左侧搜索鸟类以生成热力图数据，再查看迁徙预测。")
+    st.info("👉 请先在左侧搜索鸟类以生成 热力图数据，再查看迁徙趋势与预测。")
