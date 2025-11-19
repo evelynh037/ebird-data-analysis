@@ -27,8 +27,19 @@ UN: admin
 
 PW: admin
 
+## Open and see your result!
+The generated visualization is located at:
+```bash
+/src/docs/index.html
+```
+and see your results!
+
+Note:
+If Airflow is running on schedule, this file will automatically update daily with the newest eBird data and regenerated visualizations.
+The file under root/docs/index.html just for github demo.
+
 ## 🌐 Live Demo
-Generated webpage: https://evelynh037.github.io/ebird-data-analysis/
+Generative webpage demo: https://evelynh037.github.io/ebird-data-analysis/
 
 Try the deployed Streamlit app here:  
  **https://ebird-data-analysis-79q4xqgr2x6fgjkgfonpzs.streamlit.app**
