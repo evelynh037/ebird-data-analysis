@@ -49,7 +49,7 @@ def fetch_us_recent_for_species(taxon_code: str):
 
     res = requests.get(url, headers=headers)
     if res.status_code != 200:
-        st.error(f"拉取全美观测失败：{res.status_code} {res.text}")
+        st.error(f"Failure：{res.status_code} {res.text}")
         return pd.DataFrame()
 
     return pd.DataFrame(res.json())
@@ -67,7 +67,7 @@ def build_heatmap(all_df: pd.DataFrame):
     # 确保字段存在
     needed_cols = {"lat", "lng", "obsDt", "comName"}
     if not needed_cols.issubset(all_df.columns):
-        st.error(f"缺少必要字段: {needed_cols - set(all_df.columns)}")
+        st.error(f"Missing required fields: {needed_cols - set(all_df.columns)}")
         return None
 
     # 处理时间
@@ -76,7 +76,7 @@ def build_heatmap(all_df: pd.DataFrame):
     all_df = all_df.dropna(subset=["obsDt", "lat", "lng"])
 
     if all_df.empty:
-        st.warning("该鸟类在最近 30 天全美无有效观测记录")
+        st.warning("There are no valid observations for this species across the U.S. in the past 30 days.")
         return None
 
     # 颜色映射：越新的日期颜色越偏红
@@ -101,9 +101,9 @@ def build_heatmap(all_df: pd.DataFrame):
     for _, r in all_df.iterrows():
         popup = f"""
         <b>{r.get('comName', '')}</b><br>
-        观测地点：{r.get('locName', '未知')}<br>
-        数量：{r.get('howMany', 'N/A')}<br>
-        日期：{r['obsDt'].strftime('%Y-%m-%d')}
+        Spot：{r.get('locName', '未知')}<br>
+        Count：{r.get('howMany', 'N/A')}<br>
+        Date：{r['obsDt'].strftime('%Y-%m-%d')}
         """
         folium.CircleMarker(
             location=[r["lat"], r["lng"]],
@@ -121,7 +121,7 @@ def build_heatmap(all_df: pd.DataFrame):
 
 st.set_page_config(page_title="eBird 观鸟助手", layout="wide")
 
-st.title("🦅 eBird 观鸟查询 + 照片 + 全美热力图")
+st.title("🦅 eBird Bird Search + Photos + U.S. Heatmap")
 
 # 初始化 session_state，用来“记住”数据，防止按钮切换时内容消失
 if "region_df" not in st.session_state:
@@ -135,27 +135,27 @@ if "heatmap_bird_name" not in st.session_state:
 col1, col2 = st.columns([1, 1.2])
 
 with col1:
-    st.subheader("① 按地区获取最新观测列表")
+    st.subheader("① Fetch Recent Sightings by Region")
 
-    region = st.text_input("输入地区代码 (如 US-IL, 默认 US-IL)", "US-IL")
+    region = st.text_input("Enter a region code (e.g., US-IL, default: US-IL)", "US-IL")
 
-    if st.button("获取观鸟数据"):
+    if st.button("Fetch Bird Observation Data"):
         df_region = fetch_ebird_data(region)
         st.session_state["region_df"] = df_region  # 存起来
         if df_region.empty:
-            st.warning("没有获取到数据")
+            st.warning("No data found.")
         else:
-            st.success(f"成功获取 {len(df_region)} 条记录")
+            st.success(f"Successfully fetched {len(df_region)} records.")
 
     if not st.session_state["region_df"].empty:
         st.dataframe(st.session_state["region_df"].head())
 
     st.markdown("---")
-    st.subheader("② 搜索鸟类并显示照片 + 生成热力图")
+    st.subheader("② Search Species, Show Photo & Generate Heatmap")
 
-    user_bird = st.text_input("输入鸟名（支持模糊匹配，如 sparrow、robin 等）")
+    user_bird = st.text_input("Enter a bird name (fuzzy match supported, e.g., ‘sparrow’, ‘robin’)")
 
-    if st.button("搜索 & 生成热力图"):
+    if st.button("Search & Generate Heatmap"):
         # 优先用已经拉过的地区 df，没有就再拉一次
         df = st.session_state["region_df"]
         if df.empty:
@@ -163,29 +163,29 @@ with col1:
             st.session_state["region_df"] = df
 
         if df.empty:
-            st.warning("数据为空，请先确保地区有观测记录")
+            st.warning("The dataset is empty. Please make sure the selected region has observation records.")
         else:
             best = find_best_match(df, user_bird)
 
             if not best:
-                st.error("没有找到匹配鸟名")
+                st.error("No matching bird name found.")
             else:
-                st.success(f"最近似匹配：**{best}**")
+                st.success(f"Closest match：**{best}**")
 
                 row = df[df["comName"] == best].iloc[0]
                 taxon_code = row.get("taxonCode") or row.get("speciesCode")
 
                 if not taxon_code:
-                    st.error("该鸟类没有 taxonCode，无法抓取照片 / 热力图")
+                    st.error("This species has no taxonCode, so photos and heatmaps cannot be retrieved.")
                 else:
                     # 照片
                     img_url = fetch_bird_photo(taxon_code)
                     if img_url:
                         st.image(img_url, caption=best, use_container_width=True)
                     else:
-                        st.write(f"📷去 eBird 看看： https://ebird.org/species/{taxon_code}")
+                        st.write(f"📷View on eBird: https://ebird.org/species/{taxon_code}")
 
-                    st.write("### 📝 当前地区的一条观测记录")
+                    st.write("### 📝 A Recent Observation from This Region")
                     st.json(row.to_dict())
 
                     # 全美 30 天观测，存到 session_state，用于右边热力图
@@ -196,19 +196,19 @@ with col1:
 
 # ---------- 右边：全美最近 30 天热力图 ----------
 with col2:
-    st.subheader("③ 全美最近 30 天观测热力图")
+    st.subheader("③ Nationwide Heatmap of Observations in the Past 30 Days")
 
     if (
         st.session_state["heatmap_df"] is None
         or st.session_state["heatmap_df"].empty
         or st.session_state["heatmap_bird_name"] is None
     ):
-        st.info("👉 先搜索鸟名，生成热力图数据。")
+        st.info("👉 Please search for a bird first to generate the heatmap data.")
     else:
         all_df = st.session_state["heatmap_df"]
         bird_name = st.session_state["heatmap_bird_name"]
 
-        st.markdown(f"**当前鸟种：{bird_name}**  （最近 30 天，全美）")
+        st.markdown(f"**Current Species:{bird_name}**  （Past 30 Days, U.S.）")
 
         folium_map = build_heatmap(all_df)
         if folium_map is not None:
@@ -218,84 +218,166 @@ with col2:
 
 
 # =========================================================
-# =============== ④ 未来热点城市预测 + 迁徙方向分析 ===============
+# =============== ④ Migration Trend & Prediction ==========
 # =========================================================
 
 import numpy as np
+import re
 
 st.write("---")
-st.subheader("④ 未来 7 天可能出现的城市 + 迁徙方向分析")
+st.subheader("④ Migration Trend & Prediction (Past 30 Days → Hotspots & Direction)")
 
-# 必须已有热力图数据
+# Only execute if heatmap data exists
 if (
     "heatmap_df" in st.session_state
     and isinstance(st.session_state["heatmap_df"], pd.DataFrame)
     and not st.session_state["heatmap_df"].empty
 ):
-
     df_pred = st.session_state["heatmap_df"].copy()
+
+    # ---- Date processing ----
     df_pred["obsDt"] = pd.to_datetime(df_pred["obsDt"], errors="coerce")
     df_pred = df_pred.dropna(subset=["obsDt", "lat", "lng", "locName"])
     df_pred = df_pred.sort_values("obsDt")
 
-    # ======================
-    # ① 未来 7 天热点城市预测
-    # ======================
-    st.markdown("### 🌆 未来 7 天：最可能观测到该鸟的城市（基于最近 30 天）")
+    # ============================================================
+    # ========== ① Next 7 Days Hotspot Prediction (Cleaned) ======
+    # ============================================================
+
+    st.markdown("### 🌆 Top Likely Hotspot Areas for the Next 7 Days")
+
+    # ---------- Clean function (ZIP + City only) ----------
+    def clean_loc_name(name: str):
+        """
+        Clean eBird location names:
+        - Remove backyard/home/private locations
+        - Extract ZIP code if present
+        - Extract city name (usually second-to-last item)
+        - Output format: ZIP – City
+        - If no ZIP: City only
+        - If no city: return main part of location
+        """
+        if not isinstance(name, str):
+            return None
+
+        raw = name.strip()
+        name_lower = raw.lower()
+
+        # Remove private locations
+        bad_keywords = [
+            "yard", "backyard", "my yard", "front yard",
+            "home", "my home", "house", "my house",
+            "feeder", "garden", "patio", "my place"
+        ]
+        for kw in bad_keywords:
+            if kw in name_lower:
+                return None  # drop
+
+        # Extract ZIP code
+        zip_match = re.search(r"\b\d{5}\b", raw)
+        zip_code = zip_match.group() if zip_match else None
+
+        # Extract city
+        parts = [p.strip() for p in raw.split(",") if len(p.strip()) > 0]
+        city = None
+        if len(parts) >= 2:
+            candidate = parts[-2]
+            if len(candidate) > 2:
+                city = candidate
+
+        # Output rules
+        if zip_code and city:
+            return f"{zip_code} – {city}"
+
+        if city:
+            return city
+
+        if zip_code:
+            return zip_code
+
+        return parts[0] if len(parts) >= 1 else raw
+
 
     if df_pred.empty:
-        st.warning("数据不足，无法预测未来城市")
+        st.warning("Not enough data to predict hotspots.")
     else:
-        # 使用 value_counts 返回的是：
-        #   index -> locName
-        #   values -> count
-        vc = df_pred["locName"].value_counts()
+        # Apply cleaning logic
+        df_pred["clean_loc"] = df_pred["locName"].apply(clean_loc_name)
+        df_clean = df_pred.dropna(subset=["clean_loc"])
 
-        top_cities = pd.DataFrame({
-            "city": vc.index,
-            "count": vc.values
-        })
-
-        # 强制 count 为数值类型 —— 绝对不会报错
-        top_cities["count"] = pd.to_numeric(top_cities["count"], errors="coerce").fillna(0).astype(int)
-
-        # 概率（一定能跑，不会出现字符串问题）
-        total_count = top_cities["count"].sum()
-        if total_count > 0:
-            top_cities["probability"] = top_cities["count"] / total_count
+        if df_clean.empty:
+            st.warning("No valid public hotspot locations after filtering.")
         else:
-            top_cities["probability"] = 0
+            vc = df_clean["clean_loc"].value_counts()
 
-        st.write("📍 **未来最可能出现的前 5 个城市**（按过去 30 天频率预测）")
-        st.dataframe(top_cities.head(5))
+            top_areas = pd.DataFrame({
+                "Area": vc.index,
+                "Observations": vc.values
+            })
 
-        st.info("⚠️ 说明：未来 7 天预测基于过去 30 天谁出现得最频繁；实际迁徙行为可能受天气影响。")
+            top_areas["Observations"] = pd.to_numeric(
+                top_areas["Observations"], errors="coerce"
+            ).fillna(0).astype(int)
 
-    # ======================
-    # ② 迁徙方向分析（北/南/不动）
-    # ======================
-    st.markdown("### 🧭 最近 30 天迁徙方向判断")
+            total_count = top_areas["Observations"].sum()
+            top_areas["Probability"] = (
+                top_areas["Observations"] / total_count
+                if total_count > 0 else 0
+            )
+
+            st.write("📍 **Top 5 Likely Hotspot Areas (Cleaned & Filtered):**")
+            st.dataframe(top_areas.head(5))
+
+            st.info(
+                "Private locations (backyard, home, feeder, etc.) have been filtered out. "
+                "ZIP codes and city names are extracted when available."
+            )
+
+    # ============================================================
+    # ========== ② Migration Direction (State-Based) =============
+    # ============================================================
+
+    st.markdown("### 🧭 Migration Direction Over the Past 30 Days")
 
     if len(df_pred) < 3:
-        st.warning("观测点太少，无法分析方向")
+        st.warning("Not enough data to determine migration direction.")
     else:
-        df_pred["lat_shift"] = df_pred["lat"].diff()
-        df_pred["day_shift"] = df_pred["obsDt"].diff().dt.total_seconds() / (3600 * 24)
+        # Extract US state from location string
+        def extract_state(loc):
+            parts = str(loc).split(",")
+            if len(parts) >= 2:
+                s = parts[-1].strip()
+                if len(s) == 2:  # e.g., IL, WI, TX
+                    return s
+            return None
 
-        df_pred = df_pred.dropna(subset=["lat_shift", "day_shift"])
-        df_pred["lat_per_day"] = df_pred["lat_shift"] / df_pred["day_shift"]
+        df_pred["state"] = df_pred["locName"].apply(extract_state)
+        df_pred = df_pred.dropna(subset=["state"])
 
-        mean_lat_change = df_pred["lat_per_day"].mean()
+        # Average latitude per state
+        state_lat = df_pred.groupby("state")["lat"].mean().to_dict()
 
-        if mean_lat_change > 0.1:
-            direction = "⬆️ **从南向北迁徙（明显北移）**"
-        elif mean_lat_change < -0.1:
-            direction = "⬇️ **从北向南迁徙（明显南移）**"
+        # Start & end of time series
+        earliest_state = df_pred.iloc[0]["state"]
+        latest_state = df_pred.iloc[-1]["state"]
+
+        if earliest_state in state_lat and latest_state in state_lat:
+            start_lat = state_lat[earliest_state]
+            end_lat = state_lat[latest_state]
+            lat_change = end_lat - start_lat
+
+            # Determine migration direction (>1° ≈ 111 km)
+            if lat_change > 1.0:
+                direction = f"⬆️ Northward Migration: {earliest_state} → {latest_state}"
+            elif lat_change < -1.0:
+                direction = f"⬇️ Southward Migration: {earliest_state} → {latest_state}"
+            else:
+                direction = f"➡️ Minimal Movement: {earliest_state} → {latest_state}"
+
+            st.success(direction)
+            st.write(f"Latitude change: {lat_change:.2f}°")
         else:
-            direction = "➡️ **无明显方向，停留在同一纬度活动**"
-
-        st.success(direction)
-        st.write(f"（平均每天纬度变化：{mean_lat_change:.4f}°）")
+            st.warning("Unable to extract enough state information.")
 
 else:
-    st.info("👉查看迁徙趋势与预测。")
+    st.info("👉 Please search for a species first to generate heatmap data.")
