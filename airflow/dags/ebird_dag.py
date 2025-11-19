@@ -1,0 +1,88 @@
+import sys
+import os
+sys.path.append("/opt/airflow/src")
+
+from datetime import datetime
+from airflow import DAG
+from airflow.operators.python import PythonOperator
+import pandas as pd
+import geopandas as gpd
+
+from get_data import fetch_notable_birds, fetch_species_observations
+from transform import transform_notice_birds, transform_observations
+from load import load_notable_birds_to_sqlite, load_species_observations_to_sqlite, load_states_to_sqlite
+# ---- DAG arguments ----
+default_args = {
+    "owner": "ebird_project",
+    "depends_on_past": False,
+    "start_date": datetime(2025, 11, 18),
+}
+
+dag = DAG(
+    dag_id="ebird_etl",
+    default_args=default_args,
+    schedule_interval="@daily",
+    catchup=False,
+    tags=["ebird", "etl"]
+)
+
+# ---- Task functions ----
+notable_REGION = "US-UT"
+observe_REGION = "US"
+API_KEY = "3g5voge8rcai"
+
+def extract_task(**kwargs):
+    notable_df = fetch_notable_birds(notable_REGION, API_KEY)
+    top_species = transform_notice_birds(notable_df, scale=10)
+    species_codes = top_species["speciesCode"].tolist()
+    species_obs = fetch_species_observations(species_codes, observe_REGION, API_KEY)
+    
+    return {
+        "top_species": top_species.to_dict(),
+        "species_obs": {k: v.to_dict() for k, v in species_obs.items()}
+    }
+
+def transform_task(ti, **kwargs):
+    data = ti.xcom_pull(task_ids="extract")
+    species_obs = {k: pd.DataFrame(v) for k, v in data["species_obs"].items()}
+
+    # path inside Docker
+    us_states = gpd.read_file("/opt/airflow/src/shp/cb_2018_us_state_20m.shp")
+    states_df, transformed_species = transform_observations(species_obs, us_states)
+
+    return {
+        "states_df": states_df.to_dict(),
+        "transformed_species": {k: v.to_dict() for k, v in transformed_species.items()}
+    }
+
+def load_task(ti, **kwargs):
+    data = ti.xcom_pull(task_ids="transform")
+    top = ti.xcom_pull(task_ids="extract")
+    
+    states_df = pd.DataFrame(data["states_df"])
+    top_species = pd.DataFrame(top["top_species"])
+    transformed_species = {k: pd.DataFrame(v) for k, v in data["transformed_species"].items()}
+
+    load_states_to_sqlite(states_df)
+    load_species_observations_to_sqlite(transformed_species)
+    load_notable_birds_to_sqlite(top_species)
+
+extract = PythonOperator(
+    task_id="extract",
+    python_callable=extract_task,
+    dag=dag
+)
+
+transform = PythonOperator(
+    task_id="transform",
+    python_callable=transform_task,
+    dag=dag
+)
+
+load = PythonOperator(
+    task_id="load",
+    python_callable=load_task,
+    dag=dag
+)
+
+extract >> transform >> load

@@ -1,0 +1,7 @@
+/src/db/*
+.DS_Store
+.vscode/
+env/
+venv/
+.venv/
+ENV/

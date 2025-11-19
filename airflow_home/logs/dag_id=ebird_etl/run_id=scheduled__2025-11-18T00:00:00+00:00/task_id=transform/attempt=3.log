@@ -1,0 +1,43 @@
+[2025-11-19T04:59:20.363+0000] {local_task_job_runner.py:120} INFO - ::group::Pre task execution logs
+[2025-11-19T04:59:20.390+0000] {taskinstance.py:2076} INFO - Dependencies all met for dep_context=non-requeueable deps ti=<TaskInstance: ebird_etl.transform scheduled__2025-11-18T00:00:00+00:00 [queued]>
+[2025-11-19T04:59:20.394+0000] {taskinstance.py:2076} INFO - Dependencies all met for dep_context=requeueable deps ti=<TaskInstance: ebird_etl.transform scheduled__2025-11-18T00:00:00+00:00 [queued]>
+[2025-11-19T04:59:20.395+0000] {taskinstance.py:2306} INFO - Starting attempt 3 of 3
+[2025-11-19T04:59:20.402+0000] {taskinstance.py:2330} INFO - Executing <Task(PythonOperator): transform> on 2025-11-18 00:00:00+00:00
+[2025-11-19T04:59:20.414+0000] {standard_task_runner.py:64} INFO - Started process 367 to run task
+[2025-11-19T04:59:20.422+0000] {standard_task_runner.py:90} INFO - Running: ['***', 'tasks', 'run', 'ebird_etl', 'transform', 'scheduled__2025-11-18T00:00:00+00:00', '--job-id', '31', '--raw', '--subdir', 'DAGS_FOLDER/ebird_dag.py', '--cfg-path', '/tmp/tmp5o1fhwzx']
+[2025-11-19T04:59:20.424+0000] {standard_task_runner.py:91} INFO - Job 31: Subtask transform
+[2025-11-19T04:59:20.439+0000] {logging_mixin.py:188} WARNING - /home/***/.local/lib/python3.10/site-packages/***/settings.py:195 DeprecationWarning: The sql_alchemy_conn option in [core] has been moved to the sql_alchemy_conn option in [database] - the old setting has been used, but please update your config.
+[2025-11-19T04:59:20.476+0000] {task_command.py:426} INFO - Running <TaskInstance: ebird_etl.transform scheduled__2025-11-18T00:00:00+00:00 [running]> on host f2d66115c881
+[2025-11-19T04:59:20.547+0000] {taskinstance.py:2648} INFO - Exporting env vars: AIRFLOW_CTX_DAG_OWNER='ebird_project' AIRFLOW_CTX_DAG_ID='ebird_etl' AIRFLOW_CTX_TASK_ID='transform' AIRFLOW_CTX_EXECUTION_DATE='2025-11-18T00:00:00+00:00' AIRFLOW_CTX_TRY_NUMBER='3' AIRFLOW_CTX_DAG_RUN_ID='scheduled__2025-11-18T00:00:00+00:00'
+[2025-11-19T04:59:20.548+0000] {taskinstance.py:430} INFO - ::endgroup::
+[2025-11-19T04:59:20.629+0000] {taskinstance.py:441} INFO - ::group::Post task execution logs
+[2025-11-19T04:59:20.629+0000] {taskinstance.py:2905} ERROR - Task failed with exception
+Traceback (most recent call last):
+  File "/home/airflow/.local/lib/python3.10/site-packages/airflow/models/taskinstance.py", line 465, in _execute_task
+    result = _execute_callable(context=context, **execute_callable_kwargs)
+  File "/home/airflow/.local/lib/python3.10/site-packages/airflow/models/taskinstance.py", line 432, in _execute_callable
+    return execute_callable(context=context, **execute_callable_kwargs)
+  File "/home/airflow/.local/lib/python3.10/site-packages/airflow/models/baseoperator.py", line 401, in wrapper
+    return func(self, *args, **kwargs)
+  File "/home/airflow/.local/lib/python3.10/site-packages/airflow/operators/python.py", line 235, in execute
+    return_value = self.execute_callable()
+  File "/home/airflow/.local/lib/python3.10/site-packages/airflow/operators/python.py", line 252, in execute_callable
+    return self.python_callable(*self.op_args, **self.op_kwargs)
+  File "/opt/airflow/dags/ebird_dag.py", line 49, in transform_task
+    us_states = gpd.read_file("/Users/amily/Desktop/ebird-data-analysis/src/cb_2018_us_state_20m 2/cb_2018_us_state_20m.shp")
+  File "/home/airflow/.local/lib/python3.10/site-packages/geopandas/io/file.py", line 316, in _read_file
+    return _read_file_pyogrio(
+  File "/home/airflow/.local/lib/python3.10/site-packages/geopandas/io/file.py", line 576, in _read_file_pyogrio
+    return pyogrio.read_dataframe(path_or_bytes, bbox=bbox, **kwargs)
+  File "/home/airflow/.local/lib/python3.10/site-packages/pyogrio/geopandas.py", line 275, in read_dataframe
+    result = read_func(
+  File "/home/airflow/.local/lib/python3.10/site-packages/pyogrio/raw.py", line 198, in read
+    return ogr_read(
+  File "pyogrio/_io.pyx", line 1313, in pyogrio._io.ogr_read
+  File "pyogrio/_io.pyx", line 232, in pyogrio._io.ogr_open
+pyogrio.errors.DataSourceError: /Users/amily/Desktop/ebird-data-analysis/src/cb_2018_us_state_20m 2/cb_2018_us_state_20m.shp: No such file or directory
+[2025-11-19T04:59:20.642+0000] {taskinstance.py:1206} INFO - Marking task as FAILED. dag_id=ebird_etl, task_id=transform, run_id=scheduled__2025-11-18T00:00:00+00:00, execution_date=20251118T000000, start_date=20251119T045920, end_date=20251119T045920
+[2025-11-19T04:59:20.650+0000] {standard_task_runner.py:110} ERROR - Failed to execute job 31 for task transform (/Users/amily/Desktop/ebird-data-analysis/src/cb_2018_us_state_20m 2/cb_2018_us_state_20m.shp: No such file or directory; 367)
+[2025-11-19T04:59:20.695+0000] {local_task_job_runner.py:243} INFO - Task exited with return code 1
+[2025-11-19T04:59:20.713+0000] {taskinstance.py:3503} INFO - 0 downstream tasks scheduled from follow-on schedule check
+[2025-11-19T04:59:20.715+0000] {local_task_job_runner.py:222} INFO - ::endgroup::
