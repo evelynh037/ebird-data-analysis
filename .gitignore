@@ -9,3 +9,4 @@ airflow_home/
 airflow/airflow.db
 **/__pycache__/
 /src/db/
+.env

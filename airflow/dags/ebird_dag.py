@@ -31,7 +31,9 @@ dag = DAG(
 # ---- Task functions ----
 notable_REGION = "US-UT"
 observe_REGION = "US"
-API_KEY = "3g5voge8rcai"
+API_KEY = os.environ.get("EBIRD_API_KEY")
+if not API_KEY:
+    raise ValueError("EBIRD_API_KEY environment variable is not set")
 DB_PATH = "/opt/airflow/src/db/ebird.db"
 
 def extract_task(**kwargs):

@@ -33,7 +33,7 @@ def generate_species_map(DB_PATH):
 
     # generate colors
     num_species = len(species_files)
-    cmap = cm.get_cmap("tab20c", num_species)
+    cmap = cm.get_cmap("Set1", num_species)
     species_colors = {name: colors.to_hex(cmap(i)) for i, name in enumerate(species_files.keys())}
 
     # initialize map
