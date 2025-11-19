@@ -26,3 +26,10 @@ To check airflow outputs - view the [8080 localhost.](http://localhost:8080/)
 UN: admin
 
 PW: admin
+
+## 🌐 Live Demo
+
+Try the deployed Streamlit app here:  
+ **https://ebird-data-analysis-79q4xqgr2x6fgjkgfonpzs.streamlit.app**
+
+This app allows you to explore recent bird observations, hotspot distributions, and species-level patterns using the eBird API.
