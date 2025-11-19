@@ -37,3 +37,13 @@ def load_states_to_sqlite(states_df: pd.DataFrame, db_path: str = DB_PATH):
     with sqlite3.connect(db_path) as conn:
         states_df.to_sql("states", conn, if_exists="replace", index=False)
         print(f"Loaded states table into SQLite database at {db_path}")
+
+def load_state_hotspot_stats(state_stats: pd.DataFrame, db_path: str = DB_PATH):
+    with sqlite3.connect(db_path) as conn:
+        state_stats.to_sql(
+            "state_hotspot_stats",
+            conn,
+            if_exists="replace",
+            index=False
+        )
+        print(f"Loaded state_hotspot_stats table into SQLite database at {db_path}")

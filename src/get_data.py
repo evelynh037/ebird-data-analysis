@@ -47,3 +47,20 @@ def fetch_species_observations(
         species_data[species_code] = df
         
     return species_data
+
+def fetch_hotspots(region_code: str, api_key: str, back: int = 30, save_path: str = None) -> pd.DataFrame:
+    url = f"https://api.ebird.org/v2/ref/hotspot/{region_code}"
+    headers = {"X-eBirdApiToken": api_key}
+    params = {"back": back, "fmt": "json"}
+
+    response = requests.get(url, headers=headers, params=params)
+
+    if response.status_code != 200:
+        raise Exception(
+            f"Error fetching hotspots: {response.status_code}, {response.text}"
+        )
+
+    hotspots = response.json()
+    hotspots_df = pd.DataFrame(hotspots)
+
+    return hotspots_df

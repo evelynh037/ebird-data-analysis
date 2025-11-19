@@ -1,6 +1,7 @@
 import geopandas as gpd
 from shapely.geometry import Point
 import pandas as pd
+import numpy as np
 
 
 def transform_notice_birds(df, scale=10):
@@ -68,3 +69,42 @@ def transform_observations(dataframes, us_states):
         transformed[species_code] = final_df
 
     return states_df[['state_id', 'state_code']], transformed
+
+def transform_hotspot_stats(df_hot, state_df):
+    # extract state two-letter code (e.g., "US-CA" → "CA")
+    df_hot["state_code"] = df_hot["subnational1Code"].str.split("-").str[1]
+
+    # aggregate hotspot count per state
+    hotspot_count = (
+        df_hot.groupby("state_code", as_index=False)
+        .size()
+        .rename(columns={"size": "hotspot_count"})
+    )
+
+    # compute species richness per state (max numSpeciesAllTime within state)
+    species_richness = (
+        df_hot.groupby("state_code", as_index=False)["numSpeciesAllTime"]
+        .max()
+        .rename(columns={"numSpeciesAllTime": "species_richness"})
+    )
+
+    # merge hotspot stats into one table
+    state_stats = hotspot_count.merge(species_richness, on="state_code")
+
+    # map state_code → state_id 
+    state_stats = state_stats.merge(state_df, on="state_code", how="left")
+
+    # replace 'state_code' with 'state_id'
+    state_stats = state_stats[["state_id", "hotspot_count", "species_richness"]]
+    
+    # apply log transform (log1p avoids log(0))
+    state_stats["log_hotspot"] = np.log1p(state_stats["hotspot_count"])
+    state_stats["log_richness"] = np.log1p(state_stats["species_richness"])
+
+    # keep only logged columns
+    state_stats = state_stats[["state_id", "log_hotspot", "log_richness"]]
+
+    # sort by richness log
+    state_stats = state_stats.sort_values("log_richness", ascending=False)
+
+    return state_stats
