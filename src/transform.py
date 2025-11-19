@@ -12,7 +12,7 @@ def transform_notice_birds(df, scale=10):
     })
     
     # sort by num desc
-    sorted_df = aggregated.sort_values(by="howMany", ascending=False)
+    sorted_df = aggregated.sort_values(by="howMany", ascending=True)
     
     # take the top scale number
     top_df = sorted_df.head(scale)
@@ -41,7 +41,7 @@ def transform_observations(dataframes, us_states):
         validated = df[df["obsValid"] == True]
 
         # Keep relevant columns
-        selected = validated[["speciesCode", "obsDt", "howMany", "lat", "lng"]].copy()
+        selected = validated[["speciesCode", "obsDt", "howMany", "lat", "lng","locName"]].copy()
 
         # Convert lat/lng to geometry
         geometry = [Point(xy) for xy in zip(selected["lng"], selected["lat"])]
@@ -64,7 +64,7 @@ def transform_observations(dataframes, us_states):
         )
 
         # Keep only relevant columns
-        final_df = gdf_states[["speciesCode", "obsDt", "howMany", "lat", "lng", "state_id"]].copy()
+        final_df = gdf_states[["speciesCode", "obsDt", "howMany", "lat", "lng", "state_id","locName"]].copy()
         transformed[species_code] = final_df
 
     return states_df[['state_id', 'state_code']], transformed
