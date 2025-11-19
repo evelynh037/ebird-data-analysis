@@ -11,6 +11,8 @@ import geopandas as gpd
 from get_data import fetch_notable_birds, fetch_species_observations
 from transform import transform_notice_birds, transform_observations
 from load import load_notable_birds_to_sqlite, load_species_observations_to_sqlite, load_states_to_sqlite
+from visual import generate_species_map
+
 # ---- DAG arguments ----
 default_args = {
     "owner": "ebird_project",
@@ -30,6 +32,7 @@ dag = DAG(
 notable_REGION = "US-UT"
 observe_REGION = "US"
 API_KEY = "3g5voge8rcai"
+DB_PATH = "/opt/airflow/src/db/ebird.db"
 
 def extract_task(**kwargs):
     notable_df = fetch_notable_birds(notable_REGION, API_KEY)
@@ -67,6 +70,10 @@ def load_task(ti, **kwargs):
     load_species_observations_to_sqlite(transformed_species)
     load_notable_birds_to_sqlite(top_species)
 
+def visualize_task(**kwargs):
+    generate_species_map(DB_PATH)
+    
+    
 extract = PythonOperator(
     task_id="extract",
     python_callable=extract_task,
@@ -85,4 +92,10 @@ load = PythonOperator(
     dag=dag
 )
 
-extract >> transform >> load
+visualize = PythonOperator(
+    task_id="visualize",
+    python_callable=visualize_task,
+    dag=dag
+)
+
+extract >> transform >> load >> visualize
