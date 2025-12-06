@@ -15,6 +15,7 @@ EBIRD_API_KEY = "3g5voge8rcai"
 
 
 # -------------------- Fetch recent observations by region --------------------
+@st.cache_data(ttl=3600)
 def fetch_ebird_data(region="US-IL"):
     url = f"https://api.ebird.org/v2/data/obs/{region}/recent"
     headers = {"X-eBirdApiToken": EBIRD_API_KEY}
@@ -28,6 +29,7 @@ def fetch_ebird_data(region="US-IL"):
 
 
 # -------------------- Fetch photos by taxonCode --------------------
+@st.cache_data(ttl=3600)
 def fetch_bird_photo(taxon_code: str):
     url = f"https://api.ebird.org/v2/media/catalog?taxonCode={taxon_code}&mediaType=photo"
     headers = {"X-eBirdApiToken": EBIRD_API_KEY}
@@ -44,6 +46,7 @@ def fetch_bird_photo(taxon_code: str):
 
 
 # -------------------- Fetch U.S. recent 30-day records for species --------------------
+@st.cache_data(ttl=3600)
 def fetch_us_recent_for_species(taxon_code: str):
     url = f"https://api.ebird.org/v2/data/obs/US/recent/{taxon_code}"
     headers = {"X-eBirdApiToken": EBIRD_API_KEY}
@@ -214,6 +217,13 @@ with col2:
         folium_map = build_heatmap(all_df)
         if folium_map:
             st_folium(folium_map, width=800, height=550)
+            st.markdown("### 📅 Sighting Timeline (Past 30 Days)")
+            chart_df = all_df.copy()
+            chart_df["obsDt"] = pd.to_datetime(chart_df["obsDt"], errors="coerce")
+            daily_counts = chart_df["obsDt"].dt.date.value_counts().sort_index()
+
+            st.line_chart(daily_counts)
+            st.caption("Shows the frequency of observations over time. Spikes may indicate migration waves.")
 
 # =========================================================
 # =============== ④ HOTSPOT + MIGRATION ===================
@@ -296,7 +306,8 @@ if (
         top_cities["probability"] = (top_cities["count"] / total) if total > 0 else 0.0
 
         st.write("📍 **Top 5 Most Likely Cities (Based on the Past 30 Days)**")
-        st.dataframe(top_cities.head(5))
+        with st.expander("View detailed data"):
+            st.dataframe(top_cities.head(5))
 
         st.info(
             "Private locations such as home/backyard/feeder were removed. "
