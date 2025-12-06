@@ -299,7 +299,8 @@ if (
         top_cities["probability"] = (top_cities["count"] / total) if total > 0 else 0.0
 
         st.write("📍 **Top 5 Most Likely Cities (Based on the Past 30 Days)**")
-        st.dataframe(top_cities.head(5))
+        with st.expander("View detailed data"):
+            st.dataframe(top_cities.head(5))
 
         st.info(
             "Private locations such as home/backyard/feeder were removed. "
