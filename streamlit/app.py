@@ -15,6 +15,7 @@ EBIRD_API_KEY = "3g5voge8rcai"
 
 
 # -------------------- Fetch recent observations by region --------------------
+@st.cache_data(ttl=3600)
 def fetch_ebird_data(region="US-IL"):
     url = f"https://api.ebird.org/v2/data/obs/{region}/recent"
     headers = {"X-eBirdApiToken": EBIRD_API_KEY}
@@ -28,6 +29,7 @@ def fetch_ebird_data(region="US-IL"):
 
 
 # -------------------- Fetch photos by taxonCode --------------------
+@st.cache_data(ttl=3600)
 def fetch_bird_photo(taxon_code: str):
     url = f"https://api.ebird.org/v2/media/catalog?taxonCode={taxon_code}&mediaType=photo"
     headers = {"X-eBirdApiToken": EBIRD_API_KEY}
@@ -44,6 +46,7 @@ def fetch_bird_photo(taxon_code: str):
 
 
 # -------------------- Fetch U.S. recent 30-day records for species --------------------
+@st.cache_data(ttl=3600)
 def fetch_us_recent_for_species(taxon_code: str):
     url = f"https://api.ebird.org/v2/data/obs/US/recent/{taxon_code}"
     headers = {"X-eBirdApiToken": EBIRD_API_KEY}
