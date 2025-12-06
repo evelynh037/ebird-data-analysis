@@ -217,6 +217,13 @@ with col2:
         folium_map = build_heatmap(all_df)
         if folium_map:
             st_folium(folium_map, width=800, height=550)
+            st.markdown("### 📅 Sighting Timeline (Past 30 Days)")
+            chart_df = all_df.copy()
+            chart_df["obsDt"] = pd.to_datetime(chart_df["obsDt"], errors="coerce")
+            daily_counts = chart_df["obsDt"].dt.date.value_counts().sort_index()
+
+            st.line_chart(daily_counts)
+            st.caption("Shows the frequency of observations over time. Spikes may indicate migration waves.")
 
 # =========================================================
 # =============== ④ HOTSPOT + MIGRATION ===================
