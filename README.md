@@ -13,8 +13,8 @@ An end-to-end ETL + Visualization data pipeline that transforms raw eBird API da
    - Go to [https://ebird.org](https://ebird.org) and sign up.
 
 2. **Request an API key**:  
-   - Go to [eBird API documentation](https://documenter.getpostman.com/view/664302/ebird-api-20/2HTbHW).  
-   - Scroll to “Request an API key” or visit [https://ebird.org/api/key](https://ebird.org/api/key).  
+   - Go to [eBird API documentation](https://documenter.getpostman.com/view/664302/S1ENwy59#e18ea3b5-e80c-479f-87db-220ce8d9f3b6).  
+   - Scroll to “Request an API key” or visit [Get your key](https://ebird.org/api/keygen).  
    - Fill in the form with your account info and intended use.
 
 3. **Wait for approval**:  
